@@ -18,8 +18,9 @@ What it looks like the week you load in, the tool will essentially fill out ever
 <img width="1420" height="890" alt="image" src="https://github.com/user-attachments/assets/2f265401-2d00-4936-b2a3-073e62ed7028" />
 
 Sadly, either the commits themselves will decommit, or the AI will for some reason remove the committed recruits from their board (??), so not all of them stay.
-What it looks like after advancing the week to signing day (only 11 teams with 19 or less commits):
-<img width="1386" height="851" alt="image" src="https://github.com/user-attachments/assets/6651b49d-77e7-4606-a8d5-f32c9c49b9a8" />
+What it looks like after advancing the week to signing day (NO TEAMS WITH LESS THAN 21 COMMITS IN THIS TEST!):
+<img width="1390" height="836" alt="image" src="https://github.com/user-attachments/assets/bda5848b-4f28-4383-81a2-5857484b8bc8" />
+
 
 Console output example:
 <img width="1375" height="456" alt="image" src="https://github.com/user-attachments/assets/458aa2f4-abbc-453d-a516-5c1f3b64de00" />
@@ -32,7 +33,12 @@ Debug dry run Output example, this shows the team IDs and which positions I iden
 
 ## Usage
 ONLY RUN FORCE-COMMIT.BAT ON A SAVE FILE THAT IS ON WEEK 4 OF THE TRANSFER PORTAL PERIOD. Very important. 
-Double-click one of the batch files, or run from a terminal:
+
+1. Download zip and extract to folder of your choosing
+2. Close the game or return to main menu. Make sure your save is on Week 4 of transfer portal and all your recruits on your board have a offer if you care about them
+3. Double click force-commit.bat
+4. It will automatically detect your saves (doesn't work on autosaves), or ask you for a save file path
+5. Follow the prompts and enjoy!
 
 ```
 force-commit.bat                          # auto-detect saves folder, pick save interactively
