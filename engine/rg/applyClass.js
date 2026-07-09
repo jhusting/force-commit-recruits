@@ -29,7 +29,7 @@ const STAR_TO_PRESTIGE_RANGE = {
   ONE_STAR:   [0, 1, 2, 3],
   TWO_STAR:   [1, 2, 3, 4, 5, 6, 7],
   THREE_STAR: [4, 5, 6, 7, 8, 9],
-  FOUR_STAR:  [5, 6, 7, 8, 9],
+  FOUR_STAR:  [6, 7, 8, 9, 10],
   FIVE_STAR:  [7, 8, 9, 10],
 };
 
