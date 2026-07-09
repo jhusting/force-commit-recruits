@@ -26,9 +26,7 @@ Debug dry run Output example, this shows the team IDs and which positions I iden
 <img width="941" height="597" alt="image" src="https://github.com/user-attachments/assets/55e0fdf0-41dd-4b7d-97e3-27b1b4db4c80" />
 
 
-# Force Commit Available Recruits
-
-No Node.js installation required -- a portable `node.exe` is included.
+# Force Commit Available Recruits and Set CoachXP to Fastest
 
 ## Usage
 ONLY RUN FORCE-COMMIT.BAT ON A SAVE FILE THAT IS ON WEEK 4 OF THE TRANSFER PORTAL PERIOD. Very important. 
