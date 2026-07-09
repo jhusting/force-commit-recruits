@@ -1,0 +1,13 @@
+{
+  "name": "force-commit-available-recruits",
+  "version": "1.0.0",
+  "description": "CLI tool to force-commit available recruits to needy schools in CFB27 dynasty saves",
+  "main": "force-commit.js",
+  "scripts": {
+    "start": "node force-commit.js"
+  },
+  "dependencies": {
+    "@toondepauw/node-zstd": "^2.0.0",
+    "madden-franchise": "^4.2.2"
+  }
+}
