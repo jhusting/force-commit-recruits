@@ -1,5 +1,7 @@
-# Background Info
+## Background Info
 Currently in CFB 27, there is a huge issue with AI school recruiting logic under the hood. The main purpose of this tool is to be ran once at the end of the season to match unoffered recruits with schools that need them, and even out the amount of commits across all schools in the process. In my testing on signing day I have seen many schools jump from 5-8 commits to 17-25. You can see real results below.
+
+Side note: I also included a simple set-coach-fastest.bat script which sets your coach XP to "Fastest" if you are interested. In my testing it just about doubles XP gain. Check usage for more info.
 
 IMPORTANT: You run this tool one time, on a full save (not an autosave) during week 4 of the transfer portal period. You can run this tool while you are in the main menu, or with the game closed. The tool will make a backup of your save but I HIGHLY recommend making your own backups as well.
 IMPORTANT2: This tool will target any recruit that has no offers and force them to a school. So if there is a recruit on YOUR board you want to keep, make sure you at least send them a 0 NIL offer. The tool will not touch your board otherwise. 
@@ -38,7 +40,9 @@ force-commit-dry-run.bat                  # preview results without writing chan
 set-coach-fastest.bat                     # set CoachXPSpeed to Fastest
 ```
 
-You can also run `set-coach-fastest.bat` to set your Coach XP speed to Fastest. It uses the same save picker as the force-commit tools.
+You can also run `set-coach-fastest.bat` to set your Coach XP speed to Fastest. It uses the same save picker as the force-commit tools. 
+
+IMPORTANT: If you set your coach XP to fastest and then go into the League Settings menu at ANY POINT afterwards, you will need to save again and then run the set-coach-fastest.bat an additional time. Basically EA overwrites the value the moment you enter the menu
 
 ### Advanced (terminal)
 
