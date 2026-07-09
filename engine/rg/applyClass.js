@@ -20,15 +20,64 @@ const POSITION_TO_RATING_GROUP = {
   HB: 'TEAM_RATINGRB', FB: 'TEAM_RATINGRB',
   K: 'TEAM_RATINGST', P: 'TEAM_RATINGST',
 };
+const DEALBREAKER_TO_PITCH = {
+  AthleticFacilities: 'CoachsFavorite',
+  AcademicPrestige: 'CollegeExperience',
+  BrandExposure: 'ItsGameTime',
+  ChampionshipContender: 'TVTime',
+  CoachPrestige: 'ItsGameTime',
+  CoachStability: 'TheClutch',
+  PlayingStyle: 'TimeToGetToWork',
+  PlayingTime: 'FootballInfluencer',
+  ProPotential: 'SundayBound',
+  ProgramTradition: 'Grassroots',
+  ProximityToHome: 'ConferenceSpotlight',
+  StadiumAtmosphere: 'CollegeExperience',
+  ConferencePrestige: 'ConferenceSpotlight',
+  CampusLifestyle: 'CollegeExperience',
+};
+
+// Team table grade columns -> RecruitingDealbreaker values (subset of dealbreakers we use).
+const GRADE_TO_DEALBREAKER = {
+  AcademicPrestigeGrade: 'AcademicPrestige',
+  CoachStabilityGrade: 'CoachStability',
+  CoachPrestigeGrade: 'CoachPrestige',
+  ChampionshipContenderGrade: 'ChampionshipContender',
+  CampusLifestyleGrade: 'CampusLifestyle',
+  BrandExposureGrade: 'BrandExposure',
+  AthleticFacilitiesGrade: 'AthleticFacilities',
+  ProgramTraditionGrade: 'ProgramTradition',
+  StadiumAtmosphereGrade: 'StadiumAtmosphere',
+  ConferencePrestigeGrade: 'ConferencePrestige',
+};
+
+const GRADE_VALUE_MAP = {
+  Aplus: 10,
+  A: 9,
+  Aminus: 8,
+  Bplus: 7,
+  B: 6,
+  Bminus: 5,
+  Cplus: 4,
+  C: 3,
+  Cminus: 2,
+  Dplus: 1,
+  D: 0,
+  Dminus: -1,
+  F: -2,
+}
+
 const RATING_GROUPS = ['TEAM_RATINGDB', 'TEAM_RATINGLB', 'TEAM_RATINGDL', 'TEAM_RATINGTE', 'TEAM_RATINGOL', 'TEAM_RATINGQB', 'TEAM_RATINGWR', 'TEAM_RATINGRB', 'TEAM_RATINGST'];
 const FINAL_THRESHOLD = 35;
+const YOUNG_NEEDED_THRESHOLD = 1;
+const YOUNG_NEEDED_THRESHOLD_ST = 1;
 
 // Map recruit star rating to the TeamPrestige values (0-9) they should be matched with.
 // Slight overlap at boundaries so border-prestige schools can attract from adjacent tiers.
 const STAR_TO_PRESTIGE_RANGE = {
   ONE_STAR:   [0, 1, 2, 3],
   TWO_STAR:   [1, 2, 3, 4, 5, 6, 7],
-  THREE_STAR: [4, 5, 6, 7, 8, 9],
+  THREE_STAR: [4, 5, 6, 7, 8, 9, 10],
   FOUR_STAR:  [6, 7, 8, 9, 10],
   FIVE_STAR:  [7, 8, 9, 10],
 };
@@ -68,6 +117,61 @@ function buildTeamIndexToRow(teamT) {
   return map;
 }
 
+function calculateTeamNeeds(rosterRow, rosterT, playerT, teamIndex) {
+  const debug = false;
+  if (debug) console.log('calculateTeamNeeds', rosterRow.row);
+
+  const cols = rosterT.offsetTable.map((o) => o.name);
+  const amountOfYoungPlayers = new Map();
+  for (const col of cols) {
+    const playerRef = parseRef(sf(rosterRow, col));
+    if (!playerRef || playerRef.tableId !== playerT.header.tableId) continue;
+
+    const playerRec = playerT.records[playerRef.row];
+    if (!playerRec || playerRec.isEmpty) continue;
+
+    const position = sf(playerRec, 'Position');
+    if (!position) continue;
+
+    const year = sf(playerRec, 'SchoolYear') || 'Senior';
+    if (year !== 'Freshman' && year !== 'Sophomore') continue;
+
+    amountOfYoungPlayers.set(position, (amountOfYoungPlayers.get(position) || 0) + 1);
+  }
+
+  const neededPositions = new Set();
+
+  for (const position of Object.keys(POSITION_TO_RATING_GROUP)) {
+    const count = amountOfYoungPlayers.get(position) || 0;
+    if (debug) console.log('Position Amount: ', position, count);
+    const threshold = position === 'K' || position === 'P' ? YOUNG_NEEDED_THRESHOLD_ST : YOUNG_NEEDED_THRESHOLD;
+
+    if (count <= threshold) {
+      neededPositions.add(position);
+    }
+  }
+
+  return neededPositions;
+}
+
+function calculateTeamBestDealbreaker(schoolTrackingRow, teamIndex) {
+  const debug = false;
+
+  let bestDealbreaker = null;
+  let bestDealbreakerValue = 0;
+  for (const [grade, dealbreaker] of Object.entries(GRADE_TO_DEALBREAKER)) {
+    const gradeValue = sf(schoolTrackingRow, grade) || '';
+    const gradeValueNum = GRADE_VALUE_MAP[gradeValue] || 0;
+    if (debug) console.log('Grade: ', grade, gradeValue, gradeValueNum);
+    if (gradeValueNum > bestDealbreakerValue) {
+      bestDealbreaker = dealbreaker;
+      bestDealbreakerValue = gradeValueNum;
+    }
+  }
+  if (debug) console.log('Best Dealbreaker: ', bestDealbreaker, bestDealbreakerValue, DEALBREAKER_TO_PITCH[bestDealbreaker]);
+  return bestDealbreaker;
+}
+
 /**
  * Build the list of needy schools (< threshold committed recruits), sorted by PrestigeRank
  * ascending (lowest value = highest prestige = first pick). For each school, caches the weakest
@@ -82,7 +186,7 @@ function buildTeamIndexToRow(teamT) {
  * @param threshold   schools with fewer committed recruits than this are "needy"
  * @param numGroups   how many of the lowest TEAM_RATING* groups to consider (0 = all positions accepted)
  */
-async function buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, teamT, getT, teamIndexToRow, threshold, numGroups) {
+async function buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, teamT, getT, teamIndexToRow, threshold, numGroups, rosterT, playerT) {
   const needySchools = [];
   const rtArrayLimit = recruitTargetArrayT.header.recordCapacity;
   const cols = recruitTargetArrayT.offsetTable.map((o) => o.name);
@@ -134,8 +238,28 @@ async function buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, 
     const prestigeRank = +sf(teamRec, 'PrestigeRank') || 0;
     const teamPrestige = +sf(teamRec, 'TeamPrestige') || 0;
 
-    let neededPositions;
-    if (numGroups > 0 && numGroups < RATING_GROUPS.length) {
+    let neededPositions = null;
+    
+    const rosterRef = parseRef(sf(teamRec, 'Roster'));
+    if (rosterRef) {
+      const rosterT = await getT(rosterRef.tableId);   // follow ref, don't compare IDs
+      const rosterRec = rosterT.records[rosterRef.row];
+      if (rosterRec && !rosterRec.isEmpty) {
+        neededPositions = calculateTeamNeeds(rosterRec, rosterT, playerT, boardRow);
+      }
+    }
+
+    const schoolTrackingRef = parseRef(sf(teamRec, 'MySchoolTrackingTable'));
+    let bestDealbreaker = null;
+    if (schoolTrackingRef) {
+      const schoolTrackingT = await getT(schoolTrackingRef.tableId);
+      const schoolTrackingRec = schoolTrackingT.records[schoolTrackingRef.row];
+      if (schoolTrackingRec && !schoolTrackingRec.isEmpty) {
+        bestDealbreaker = calculateTeamBestDealbreaker(schoolTrackingRec, boardRow);
+      }
+    }
+
+    /*if (numGroups > 0 && numGroups < RATING_GROUPS.length) {
       const ratings = RATING_GROUPS.map((g) => ({ group: g, value: +sf(teamRec, g) || 0 }));
       ratings.sort((a, b) => a.value - b.value);
       const lowestGroups = new Set(ratings.slice(0, numGroups).map((r) => r.group));
@@ -145,7 +269,7 @@ async function buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, 
       }
     } else {
       neededPositions = null;
-    }
+    }*/
 
     needySchools.push({
       boardRow,
@@ -156,6 +280,7 @@ async function buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, 
       neededPositions,
       targetEntries: hijackableTargets,
       targetIdx: 0,
+      bestDealbreaker,
     });
   }
 
@@ -231,7 +356,7 @@ function sendFreeCommits(recruitTargetT) {
  * recruit's stage, and rewrites the recruit's #1 top school to be the committing school.
  * @returns {boolean} true if the commit was written successfully
  */
-async function instantCommit(targetEntry, recruitRec, recruitRow, recruitTableId, boardRow, commitScore, currentWeek, getT) {
+async function instantCommit(targetEntry, recruitRec, recruitRow, recruitTableId, boardRow, commitScore, currentWeek, getT, playerEntry, schoolDealbreaker) {
   W(targetEntry, 'Recruit', makeRef(recruitTableId, recruitRow));
   W(targetEntry, 'CommittedWeekNumber', currentWeek);
   W(targetEntry, 'OriginalNILExpectation', 0);
@@ -241,6 +366,9 @@ async function instantCommit(targetEntry, recruitRec, recruitRow, recruitTableId
 
   W(recruitRec, 'RecruitStage', 'HardCommitted');
   W(recruitRec, 'RecruitStageAdvance', 'InstantCommit');
+
+  W(playerEntry, 'RecruitingDealbreaker', schoolDealbreaker);
+  W(playerEntry, 'IdealRecruitingPitch', DEALBREAKER_TO_PITCH[schoolDealbreaker]);
 
   const topSchoolsRef = parseRef(sf(recruitRec, 'TopSchoolsList'));
   if (!topSchoolsRef) return false;
@@ -277,6 +405,7 @@ async function forceCommitClass(savePath, options = {}) {
   const recruitT = await readTable(file, 'Recruit');
   const playerT = tableByName(file, 'Player'); await playerT.readRecords();
   const teamT = await readTable(file, 'Team');
+  const rosterT = await readTable(file, 'Player[]');
 
   const cache = {};
   const getT = async (id) => { if (!cache[id]) { const t = file.getTableById(id); await t.readRecords(); cache[id] = t; } return cache[id]; };
@@ -288,7 +417,7 @@ async function forceCommitClass(savePath, options = {}) {
   const byPositionGroup = {};
 
   const teamIndexToRow = buildTeamIndexToRow(teamT);
-  const needySchools = await buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, teamT, getT, teamIndexToRow, FINAL_THRESHOLD, 3);
+  const needySchools = await buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, teamT, getT, teamIndexToRow, FINAL_THRESHOLD, 3, rosterT, playerT);
   const availableRecruits = buildAvailableRecruits(recruitT, playerT);
 
   for (const s of needySchools) {
@@ -328,7 +457,7 @@ async function forceCommitClass(savePath, options = {}) {
     const targetEntry = bestSchool.targetEntries[bestSchool.targetIdx];
     bestSchool.targetIdx++;
 
-    const ok = await instantCommit(targetEntry, recruit.recruitRec, recruit.recruitRow, recruitTableId, bestSchool.boardRow, recruit.commitScore, currentWeek, getT);
+    const ok = await instantCommit(targetEntry, recruit.recruitRec, recruit.recruitRow, recruitTableId, bestSchool.boardRow, recruit.commitScore, currentWeek, getT, recruit.playerRec, bestSchool.bestDealbreaker);
 
     if (!ok) {
       debugLog.push(`[commit-fail] recruit=${recruit.recruitRow} pos=${recruit.position} star=${recruit.starRating} -> board=${bestSchool.boardRow}`);
