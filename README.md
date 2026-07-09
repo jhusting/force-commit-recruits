@@ -1,11 +1,12 @@
 Credit to JWDixon on the CFB Modding Community discord! I used one of his tools as a reference when working on this.
 
 # Background Info
-Currently in CFB 27, there is a huge issue with AI school recruiting logic under the hood. The main purpose of this tool is to be ran once at the end of the season to match unoffered recruits with schools that need them, and even out the amount of commits across all schools in the process. In my testing on signing day I have seen many schools jump from 5-8 commits to 17-25. You can see real results below.
+Currently in CFB 27, there is a huge issue with AI school recruiting logic under the hood. The main purpose of this tool is to be ran once at the end of the season to match unoffered recruits with schools that need them, and even out the amount of commits across all schools in the process. In my testing on signing day I have seen many schools jump from 5-8 commits to 17-25. In some scenarios you can see 95% schools with more than 25 commits, in some scenarios you see a large amount of schools with only 15-18 commits. But it's much better than not using it. You can see real results below.
 
 Side note: I also included a simple set-coach-fastest.bat script which sets your coach XP to "Fastest" if you are interested. In my testing it just about doubles XP gain. Check usage for more info.
 
 IMPORTANT: You run this tool one time, on a full save (not an autosave) during week 4 of the transfer portal period. You can run this tool while you are in the main menu, or with the game closed. The tool will make a backup of your save but I HIGHLY recommend making your own backups as well.
+
 IMPORTANT2: This tool will target any recruit that has no offers and force them to a school. So if there is a recruit on YOUR board you want to keep, make sure you at least send them a 0 NIL offer. The tool will not touch your board otherwise. 
 
 ## Result example
