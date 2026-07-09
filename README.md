@@ -1,3 +1,5 @@
+Credit to JWDixon on the CFB Modding Community discord! I used one of his tools as a reference when working on this.
+
 # Background Info
 Currently in CFB 27, there is a huge issue with AI school recruiting logic under the hood. The main purpose of this tool is to be ran once at the end of the season to match unoffered recruits with schools that need them, and even out the amount of commits across all schools in the process. In my testing on signing day I have seen many schools jump from 5-8 commits to 17-25. You can see real results below.
 
