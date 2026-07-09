@@ -6,7 +6,7 @@ Side note: I also included a simple set-coach-fastest.bat script which sets your
 IMPORTANT: You run this tool one time, on a full save (not an autosave) during week 4 of the transfer portal period. You can run this tool while you are in the main menu, or with the game closed. The tool will make a backup of your save but I HIGHLY recommend making your own backups as well.
 IMPORTANT2: This tool will target any recruit that has no offers and force them to a school. So if there is a recruit on YOUR board you want to keep, make sure you at least send them a 0 NIL offer. The tool will not touch your board otherwise. 
 
-Result example:
+# Result example
 On the below save, I started a new dynasty and did auto recruitment for the user team. I set number of transfers to 10. Without running the tool, on signing day there are a huge amount of schools under 15 recruits, even a large amount of schools under 10. After reloading, running the tool, and advancing again, there are only 11 schools with 19 or less recruits. Every other school has 20 or more recruits, which is a huge improvement, even if it isn't perfect. 
 
 Signing day WITHOUT running the tool: 
