@@ -259,19 +259,10 @@ async function buildNeedySchools(recruitTargetArrayT, recruitTargetT, recruitT, 
       }
     }
 
-    /*if (numGroups > 0 && numGroups < RATING_GROUPS.length) {
-      const ratings = RATING_GROUPS.map((g) => ({ group: g, value: +sf(teamRec, g) || 0 }));
-      ratings.sort((a, b) => a.value - b.value);
-      const lowestGroups = new Set(ratings.slice(0, numGroups).map((r) => r.group));
-      neededPositions = new Set();
-      for (const pos of Object.keys(POSITION_TO_RATING_GROUP)) {
-        if (lowestGroups.has(POSITION_TO_RATING_GROUP[pos])) neededPositions.add(pos);
-      }
-    } else {
-      neededPositions = null;
-    }*/
+    const teamName = sf(teamRec, 'DisplayName') || ('' + boardRow);
 
     needySchools.push({
+      teamName,
       boardRow,
       teamTableRow,
       prestigeRank,
@@ -422,7 +413,7 @@ async function forceCommitClass(savePath, options = {}) {
 
   for (const s of needySchools) {
     const needsStr = s.neededPositions ? `[${[...s.neededPositions]}]` : '[ANY]';
-    debugLog.push(`[needy] board=${s.boardRow} prestige=${s.teamPrestige} committed=${s.committedCount} hijackable=${s.targetEntries.length} needs=${needsStr}`);
+    debugLog.push(`[needy] team=${s.teamName} board=${s.boardRow} prestige=${s.teamPrestige} committed=${s.committedCount} hijackable=${s.targetEntries.length} needs=${needsStr}`);
   }
 
   const posCounts = {};
@@ -476,7 +467,7 @@ async function forceCommitClass(savePath, options = {}) {
 
   for (const s of needySchools) {
     if (s.committedCount < FINAL_THRESHOLD) {
-      debugLog.push(`[underfilled] board=${s.boardRow} prestige=${s.teamPrestige} committed=${s.committedCount}/${FINAL_THRESHOLD}`);
+      debugLog.push(`[underfilled] team=${s.teamName} teamIndex=${s.boardRow} prestige=${s.teamPrestige} committed=${s.committedCount}/${FINAL_THRESHOLD}`);
     }
   }
 
