@@ -51,6 +51,15 @@ const GRADE_TO_DEALBREAKER = {
   ConferencePrestigeGrade: 'ConferencePrestige',
 };
 
+// Lookup table used to lower a recruits star rating when necessary
+const LOWER_STAR_LOOKUP = {
+  FIVE_STAR: 'FOUR_STAR',
+  FOUR_STAR: 'THREE_STAR',
+  THREE_STAR: 'TWO_STAR',
+  TWO_STAR: 'ONE_STAR',
+  ONE_STAR: 'ONE_STAR',
+}
+
 const GRADE_VALUE_MAP = {
   Aplus: 10,
   A: 9,
@@ -71,15 +80,25 @@ const RATING_GROUPS = ['TEAM_RATINGDB', 'TEAM_RATINGLB', 'TEAM_RATINGDL', 'TEAM_
 const FINAL_THRESHOLD = 35;
 const YOUNG_NEEDED_THRESHOLD = 1;
 const YOUNG_NEEDED_THRESHOLD_ST = 1;
+const CHARITY_RECRUIT_CHANCE = 20;
 
 // Map recruit star rating to the TeamPrestige values (0-9) they should be matched with.
 // Slight overlap at boundaries so border-prestige schools can attract from adjacent tiers.
 const STAR_TO_PRESTIGE_RANGE = {
-  ONE_STAR:   [0, 1, 2, 3],
-  TWO_STAR:   [1, 2, 3, 4, 5, 6, 7],
-  THREE_STAR: [4, 5, 6, 7, 8, 9, 10],
+  ONE_STAR:   [0, 1, 2, 3, 4, 5, 6],
+  TWO_STAR:   [1, 2, 3, 4, 5, 6, 7, 8, 9, 10],
+  THREE_STAR: [3, 4, 5, 6, 7, 8, 9, 10],
   FOUR_STAR:  [6, 7, 8, 9, 10],
-  FIVE_STAR:  [7, 8, 9, 10],
+  FIVE_STAR:  [8, 9, 10],
+};
+
+// Same as above, but only recruits that have been flagged as charity recruits
+const CHARITY_STAR_TO_PRESTIGE_RANGE = {
+  ONE_STAR:   [0, 1, 2, 3],
+  TWO_STAR:   [0, 1, 2, 3],
+  THREE_STAR: [2, 3, 4, 5],
+  FOUR_STAR:  [5, 6, 7],
+  FIVE_STAR:  [7, 8, 9],
 };
 
 /**
@@ -404,6 +423,7 @@ async function forceCommitClass(savePath, options = {}) {
 
   const debugLog = [];
   let totalCommitted = 0;
+  let totalCharityCommits = 0;
   const skippedSchoolSet = new Set();
   const byPositionGroup = {};
 
@@ -413,7 +433,7 @@ async function forceCommitClass(savePath, options = {}) {
 
   for (const s of needySchools) {
     const needsStr = s.neededPositions ? `[${[...s.neededPositions]}]` : '[ANY]';
-    debugLog.push(`[needy] team=${s.teamName} board=${s.boardRow} prestige=${s.teamPrestige} committed=${s.committedCount} hijackable=${s.targetEntries.length} needs=${needsStr}`);
+    debugLog.push(`[needy] team=${s.teamName} board=${s.boardRow} prestige=${s.teamPrestige/2}star(${s.teamPrestige}) committed=${s.committedCount} hijackable=${s.targetEntries.length} needs=${needsStr}`);
   }
 
   const posCounts = {};
@@ -424,7 +444,11 @@ async function forceCommitClass(savePath, options = {}) {
     const liveStage = sf(recruit.recruitRec, 'RecruitStage') || '';
     if (liveStage === 'HardCommitted' || liveStage === 'Signed') continue;
 
-    const allowedPrestige = STAR_TO_PRESTIGE_RANGE[recruit.starRating];
+    let allowedPrestige = STAR_TO_PRESTIGE_RANGE[recruit.starRating];
+    // Give recruits a chance to lower their star rating and go to a lower school
+    if (recruit.nationalRank%100 < CHARITY_RECRUIT_CHANCE) {
+      allowedPrestige = CHARITY_STAR_TO_PRESTIGE_RANGE[recruit.starRating];
+    }
     if (!allowedPrestige) continue;
 
     const prestigeSet = new Set(allowedPrestige);
@@ -441,8 +465,18 @@ async function forceCommitClass(savePath, options = {}) {
     let bestSchool;
     if (posMatch.length > 0) {
       bestSchool = posMatch.reduce((a, b) => a.committedCount <= b.committedCount ? a : b);
+      const allMatching = posMatch.filter((s) => s.committedCount === bestSchool.committedCount);
+      if (allMatching.length > 1) {
+        const randomIndex = Math.floor(Math.random() * allMatching.length);
+        bestSchool = allMatching[randomIndex];
+      }
     } else {
       bestSchool = candidates.reduce((a, b) => a.committedCount <= b.committedCount ? a : b);
+      const allMatching = candidates.filter((s) => s.committedCount === bestSchool.committedCount);
+      if (allMatching.length > 1) {
+        const randomIndex = Math.floor(Math.random() * allMatching.length);
+        bestSchool = allMatching[randomIndex];
+      }
     }
 
     const targetEntry = bestSchool.targetEntries[bestSchool.targetIdx];
@@ -463,11 +497,17 @@ async function forceCommitClass(savePath, options = {}) {
     if (bestSchool.targetIdx >= bestSchool.targetEntries.length && bestSchool.committedCount < FINAL_THRESHOLD) {
       skippedSchoolSet.add(bestSchool.boardRow);
     }
+
+    const originalPrestigeSet = new Set(STAR_TO_PRESTIGE_RANGE[recruit.starRating]);
+    if (!originalPrestigeSet.has(bestSchool.teamPrestige)) {
+      totalCharityCommits++;
+      debugLog.push(`[charity] recruit=${recruit.recruitRow} star=${recruit.starRating} -> school=${bestSchool.teamName} prestige=${bestSchool.teamPrestige/2}star(${bestSchool.teamPrestige})`);
+    }
   }
 
   for (const s of needySchools) {
     if (s.committedCount < FINAL_THRESHOLD) {
-      debugLog.push(`[underfilled] team=${s.teamName} teamIndex=${s.boardRow} prestige=${s.teamPrestige} committed=${s.committedCount}/${FINAL_THRESHOLD}`);
+      debugLog.push(`[underfilled] team=${s.teamName} teamIndex=${s.boardRow} prestige=${s.teamPrestige/2}star(${s.teamPrestige}) committed=${s.committedCount}/${FINAL_THRESHOLD}`);
     }
   }
 
@@ -485,7 +525,7 @@ async function forceCommitClass(savePath, options = {}) {
     fs.copyFileSync(savePath, backup);
     await file.save();
   }
-  return { committed: totalCommitted, stillNeedy: finalStillNeedy, byPositionGroup, skippedSchools: [...skippedSchoolSet], skipped: finalAvailable.length, currentWeek, backup, dryRun: !!options.dryRun, debugLog };
+  return { committed: totalCommitted, charityCommits: totalCharityCommits, stillNeedy: finalStillNeedy, byPositionGroup, skippedSchools: [...skippedSchoolSet], skipped: finalAvailable.length, currentWeek, backup, dryRun: !!options.dryRun, debugLog };
 }
 
 async function setCoachXP(savePath, options = {}) {

@@ -37,6 +37,7 @@ async function main() {
   console.log(`${c.bold}Results${c.reset}`);
   console.log(`${c.dim}───────${c.reset}`);
   console.log(`  Committed:         ${c.green}${result.committed}${c.reset}`);
+  console.log(`  Charity commits (Recruits that went to a lower school than usual):   ${c.green}${result.charityCommits}${c.reset}`);
   console.log(`  Still needy:       ${result.stillNeedy}`);
   console.log(`  Remaining recruits:${c.dim} ${result.skipped}${c.reset}`);
   console.log(`  Week:              ${result.currentWeek}`);
